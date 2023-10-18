@@ -30,7 +30,7 @@ def validateEmailID(receiver):
     # return True
 
     #efficient way - good practice
-    validation_condition = "^[a-z]+[\._]?[a-z 0-9]+[@]\w+[.]\w{2,3}$"  # validation using regular expression
+    validation_condition = r"^[\w\.-]+@[\w\.-]+\.\w+$"  # validation using regular expression
     if re.search(validation_condition, receiver):
         return True
     else:
