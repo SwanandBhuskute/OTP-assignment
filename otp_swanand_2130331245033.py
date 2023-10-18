@@ -14,8 +14,10 @@ target = '+918625847883'
 #Function to generate OTP
 def generateOtp(n = 6):
     otp = ""
+
     for i in range(n):
         otp += str(random.randint(0, 9))
+    
     return otp
 
 #Function to validate mobile
