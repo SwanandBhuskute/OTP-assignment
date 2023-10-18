@@ -1,6 +1,7 @@
 #Importing requires libraries
-import smtplib
 import random
+import re
+import smtplib
 from twilio.rest import Client
 
 #User and Twilio info
@@ -23,9 +24,17 @@ def validateMobile(mobile):
 
 #Function to validate Email
 def validateEmailID(receiver):
-    if "@" not in receiver or "." not in receiver:
+    # not efficient way
+    # if "@" not in receiver or "." not in receiver:
+    #     return False
+    # return True
+
+    #efficient way - good practice
+    validation_condition = "^[a-z]+[\._]?[a-z 0-9]+[@]\w+[.]\w{2,3}$"  # validation using regular expression
+    if re.search(validation_condition, receiver):
+        return True
+    else:
         return False
-    return True
 
 # Send OTP over mobile using Twilio
 def sendOTPOverMobile(target, otp):
