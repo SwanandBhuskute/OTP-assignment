@@ -3,63 +3,74 @@ import re
 import smtplib
 from twilio.rest import Client
 
-class Mobile:
+class CommunicationService:
+    def _init_(self, account_sid, auth_token, sender_email, sender_password):
+        self.client = Client(account_sid, auth_token)
+        self.sender_email = sender_email
+        self.sender_password = sender_password
+
+    @staticmethod
+    def generate_otp(n=6):
+        return ''.join(str(random.randint(0, 9)) for _ in range(n))
+
+    def send_otp(self, message, receiver):
+        raise NotImplementedError("Subclasses must implement this method.")
+
+class MobileService(CommunicationService):
+    def _init_(self, account_sid, auth_token):
+        super()._init_(account_sid, auth_token, None, None)
+
     @staticmethod
     def validate_mobile(mobile):
         return len(mobile) == 10 and mobile.isdigit()
 
-    @staticmethod
-    def send_otp_over_mobile(client, twilio_num, target, otp):
-        if Mobile.validate_mobile(target):
-            target = "+91" + target
-            message = client.messages.create(
-                body="Your OTP is " + otp + ". Valid for next 15 minutes.",
-                from_=twilio_num,
-                to=target
+    def send_otp(self, target_mobile, otp):
+        if self.validate_mobile(target_mobile):
+            target_mobile = "+91" + target_mobile
+            message = self.client.messages.create(
+                body=f"Your OTP is {otp}. Valid for next 15 minutes.",
+                from_=self.sender_email,
+                to=target_mobile
             )
             print(message.body)
-            print("Check Phone! Sent to ", target)
+            print(f"Check Phone! Sent to {target_mobile}")
         else:
             print("Enter a valid mobile number!!")
 
-class Email:
+class EmailService(CommunicationService):
     @staticmethod
     def validate_email(receiver):
         validation_condition = r"^[\w\.-]+@[\w\.-]+\.\w+$"
         return bool(re.search(validation_condition, receiver))
 
-    @staticmethod
-    def send_otp_over_email(sender_email, sender_password, receiver, otp):
-        if Email.validate_email(receiver):
-            body = "Your OTP is " + otp + ". Valid for next 15 minutes."
+    def send_otp(self, receiver_email, otp):
+        if self.validate_email(receiver_email):
+            body = f"Your OTP is {otp}. Valid for next 15 minutes."
             server = smtplib.SMTP('smtp.gmail.com', 587)
             server.starttls()
-            server.login(sender_email, sender_password)
-            server.sendmail(sender_email, receiver, body)
-            print("Mail sent - OTP: ", otp)
+            server.login(self.sender_email, self.sender_password)
+            server.sendmail(self.sender_email, receiver_email, body)
+            print(f"Mail sent - OTP: {otp}")
         else:
             print("Please enter a valid email!!")
 
 class OTPServices:
     def _init_(self, account_sid, auth_token, twilio_num, sender_email, sender_password):
-        self.client = Client(account_sid, auth_token)
-        self.twilio_num = twilio_num
-        self.sender_email = sender_email
-        self.sender_password = sender_password
-        self.mobile_service = Mobile()
-        self.email_service = Email()
+        self.mobile_service = MobileService(account_sid, auth_token)
+        self.email_service = EmailService(account_sid, auth_token)
+        self.mobile_service.sender_email = sender_email
+        self.email_service.sender_email = sender_email
+        self.mobile_service.sender_password = sender_password
+        self.email_service.sender_password = sender_password
+        self.mobile_service.twilio_num = twilio_num
 
-    def send_otp(self, receiver_email, send_twilio=True, target_mobile=None):
-        generated_otp = self.generate_otp(6)
+    def send_otp(self, receiver, send_twilio=True, target_mobile=None):
+        generated_otp = CommunicationService.generate_otp(6)
 
         if send_twilio:
-            self.mobile_service.send_otp_over_mobile(self.client, self.twilio_num, target_mobile, generated_otp)
+            self.mobile_service.send_otp(target_mobile, generated_otp)
 
-        self.email_service.send_otp_over_email(self.sender_email, self.sender_password, receiver_email, generated_otp)
-
-    @staticmethod
-    def generate_otp(n=6):
-        return ''.join(str(random.randint(0, 9)) for _ in range(n))
+        self.email_service.send_otp(receiver, generated_otp)
 
 if _name_ == "_main_":
     print("Welcome to Random OTP sender!!\nHere, we send random OTPs to phone number and mails.\n")
